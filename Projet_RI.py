@@ -58,11 +58,13 @@ def search():
     results = search_query(query)
     response = []
     for idx, score in results:
-        response.append({
-            "document_id": idx + 1,
-            "similarity": round(score, 2),
-            "content": corpus_files[idx]
-        })
+        if score >= 0.1 :
+            response.append({
+                "document_id": int(idx) + 1,  # Convertir en int standard
+                "similarity": round(float(score), 2),  # Convertir en float standard
+                "content": corpus_files[int(idx)]  # Assurez-vous que idx est un entier natif
+            })
+
     return jsonify(response)
 
 # Lancer le serveur Flask
