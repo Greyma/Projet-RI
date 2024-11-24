@@ -4,13 +4,14 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import spacy
 
+os.system('python -m spacy download en_core_web_sm')
 
 # Charger le modèle linguistique spaCy
 nlp = spacy.load("en_core_web_sm")
 
 
 # Parcourir le dossier Collection_TIME
-folder_path = "/content/drive/MyDrive/Projet RI/Collection_TIME"
+folder_path = "Collection_TIME"
 files = os.listdir(folder_path)
 
 corpus_files = []
@@ -66,4 +67,4 @@ def search():
 
 # Lancer le serveur Flask
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host="0.0.0.0",debug=False)
