@@ -9,7 +9,6 @@ os.system('python -m spacy download en_core_web_sm')
 # Charger le modèle linguistique spaCy
 nlp = spacy.load("en_core_web_sm")
 
-
 # Parcourir le dossier Collection_TIME
 folder_path = "Collection_TIME"
 files = os.listdir(folder_path)
@@ -19,7 +18,6 @@ for filename in files:
     file_path = os.path.join(folder_path, filename)
     with open(file_path, "r", encoding="utf-8") as file:
         corpus_files.append(file.read())
-
 
 # Fonction pour extraire les entités nommées d'un document
 def extract_named_entities(doc): 
@@ -34,7 +32,7 @@ entity_documents = [extract_named_entities(doc) for doc in corpus_files]
 vectorizer = TfidfVectorizer()
 tfidf_matrix = vectorizer.fit_transform(entity_documents)
 
-# Étape 4 : les requêtes
+# Étape 4 : Appariement des requêtes
 def search_query(query):
     # Extraire les entités nommées de la requête
     query_entities = extract_named_entities(query)
@@ -54,7 +52,7 @@ def search():
     query = request.args.get('query', default='', type=str)
     if not query:
         return jsonify({"error": "A query parameter is required."}), 400
-    
+
     results = search_query(query)
     response = []
     for idx, score in results:
