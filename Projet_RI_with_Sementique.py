@@ -4,11 +4,9 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import spacy
 
+# Télécharger et charger le modèle SpaCy
 os.system('python -m spacy download en_core_web_sm')
-
-# Charger le modèle linguistique spaCy
 nlp = spacy.load("en_core_web_sm")
-
 
 # Parcourir le dossier Collection_TIME
 folder_path = "Collection_TIME"
@@ -20,33 +18,40 @@ for filename in files:
     with open(file_path, "r", encoding="utf-8") as file:
         corpus_files.append(file.read())
 
-
-# Fonction pour extraire les entités nommées d'un document
-def extract_named_entities(doc): 
+# Fonction pour extraire les entités nommées d'un document avec leurs types
+def extract_named_entities(doc):
     spacy_doc = nlp(doc)
-    entities = [ent.text for ent in spacy_doc.ents]  # Extraire uniquement les entités nommées
-    return " ".join(entities)  # Retourner les entités sous forme de texte concaténé
+    entities = {ent.label_: [] for ent in spacy_doc.ents}
+    for ent in spacy_doc.ents:
+        entities[ent.label_].append(ent.text)
+    return entities
 
-# Étape 2 : Extraire les entités nommées pour chaque document
-entity_documents = [extract_named_entities(doc) for doc in corpus_files]
+# Fonction pour convertir les entités en texte concaténé (par type)
+def entities_to_text(entities):
+    return " ".join([" ".join(ents) for ents in entities.values()])
 
-# Étape 3 : Calculer la pondération TF-IDF
+# Extraction des entités nommées et transformation en texte concaténé
+entity_documents = [entities_to_text(extract_named_entities(doc)) for doc in corpus_files]
+
+# Calcul de la pondération TF-IDF
 vectorizer = TfidfVectorizer()
 tfidf_matrix = vectorizer.fit_transform(entity_documents)
 
-# Étape 4 : les requêtes
+# Fonction de recherche avec amélioration sémantique
 def search_query(query):
     # Extraire les entités nommées de la requête
     query_entities = extract_named_entities(query)
+    # Transformer les entités de la requête en texte concaténé
+    query_text = entities_to_text(query_entities)
     # Transformer la requête en vecteur TF-IDF
-    query_vector = vectorizer.transform([query_entities])
+    query_vector = vectorizer.transform([query_text])
     # Calculer la similarité cosinus avec les documents
     similarities = cosine_similarity(query_vector, tfidf_matrix).flatten()
     # Classer les documents par similarité
     ranked_indices = similarities.argsort()[::-1]
     return [(i, similarities[i]) for i in ranked_indices]
 
-    # Initialiser l'application Flask
+# Initialiser l'application Flask
 app = Flask(__name__)
 
 @app.route('/search', methods=['GET'])
@@ -54,19 +59,20 @@ def search():
     query = request.args.get('query', default='', type=str)
     if not query:
         return jsonify({"error": "A query parameter is required."}), 400
-    
+
     results = search_query(query)
     response = []
     for idx, score in results:
-        if score >= 0.1 :
+        if score >= 0.1:  # Seulement les documents pertinents
             response.append({
-                "document_id": int(idx) + 1,  # Convertir en int standard
-                "similarity": round(float(score), 2),  # Convertir en float standard
-                "content": corpus_files[int(idx)]  # Assurez-vous que idx est un entier natif
+                "document_id": int(idx) + 1,
+                "similarity": round(float(score), 2),
+                "content": corpus_files[int(idx)],
+                "named_entities": extract_named_entities(corpus_files[int(idx)])  # Ajouter les entités extraites
             })
 
     return jsonify(response)
 
 # Lancer le serveur Flask
 if __name__ == '__main__':
-    app.run(host="0.0.0.0",debug=False)
+    app.run(host="0.0.0.0", debug=False)
